@@ -53,7 +53,7 @@ class Benchmark_Sold(scrapy.Spider):
         DB_already_exists = self.read_data_base(response.url)
         if not DB_already_exists:
             item = dict()
-            item['Field2'] = '1223'
+            item['Field2'] = '1504'
             item['Field3'] = datetime.now().date().strftime('%Y-%m-%d')  # date_data_scanned
             item['Field4'] = 'Benchmark National'
 
