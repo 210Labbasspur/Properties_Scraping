@@ -116,7 +116,7 @@ class Coastline_Sold(scrapy.Spider):
         if not DB_already_exists:
             mini_data = response.meta['mini_data']
             item = dict()
-            item['Field2'] = '1340'
+            item['Field2'] = '1613'
             item['Field3'] = datetime.now().date().strftime('%Y-%m-%d')  # date_data_scanned
             item['Field4'] = 'Green Street Property'
 
