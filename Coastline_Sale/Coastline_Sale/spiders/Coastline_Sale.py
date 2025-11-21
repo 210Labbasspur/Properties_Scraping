@@ -1,238 +1,286 @@
-##################      Coastline_Sale
+################3       Coastline_Sale
 
-from copy import deepcopy
-import scrapy
-import pymongo
+import random
 import mimetypes
-from datetime import datetime
+import re
+from botocore.exceptions import NoCredentialsError, ClientError
 import requests, json, time, threading, queue, os
 import boto3
-from botocore.exceptions import NoCredentialsError, ClientError
+import pymongo
+from datetime import datetime
+from botocore.exceptions import NoCredentialsError
+import scrapy
+
 
 class Coastline_Sale(scrapy.Spider):
-    name = 'Coastline_Sale'
-    prefix = 'https://www.coastlineagency.com.au'
-    url = 'https://www.coastlineagency.com/wp-admin/admin-ajax.php'
-    headers = {
-        'accept': '*/*',
-        'accept-language': 'en-US,en;q=0.9,ur;q=0.8,nl;q=0.7',
-        'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
-        # 'cookie': '_ga=GA1.1.308708400.1714476062; _ga_6SH59M48Q0=GS1.1.1714693154.3.0.1714693154.0.0.0; arp_scroll_position=3051',
-        'origin': 'https://www.coastlineagency.com',
-        'priority': 'u=1, i',
-        # 'referer': 'https://www.coastlineagency.com/selling/recent-sales/',
-        'sec-ch-ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Windows"',
-        'sec-fetch-dest': 'empty',
-        'sec-fetch-mode': 'cors',
-        'sec-fetch-site': 'same-origin',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'x-requested-with': 'XMLHttpRequest',
-    }
+    name = "Coastline_Sale"
 
-    data = {
-        'atts[list]': 'sale',
-        'atts[multilist]': '',
-        'atts[layout]': '',
-        'atts[template]': 'Shortcode.SearchResults.SearchResults',
-        'atts[selector_listings]': 'ap-listing-search-results',
-        'atts[ajax_template]': 'Ajax.SearchResults',
-        'atts[load_more]': 'true',
-        'atts[hide_search_form]': '0',
-        'atts[row_col_class]': 'row row-cols-xl-3 row-cols-lg-2 row-cols-1',
-        'atts[per_page]': '18',
-        'atts[sur_suburbs]': '0',
-        'atts[center_latlng]': '',
-        'atts[sur_suburbs_radius]': '10',
-        'atts[max_page]': 'false',
-        'atts[map_zoom]': '11',
-        'atts[map]': 'map_canvas',
-        'atts[map_load_all_marker]': '1',
-        'atts[map_callback]': 'ap_realty.searchResultsMapCallback',
-        'atts[map_attribute_cluster]': '0',
-        'atts[map_is_visible]': '1',
-        'atts[property_type_column]': '1,2,3',
-        'atts[content_first]': '0',
-        'atts[auth]': '0',
-        'atts[auth_type]': 'content',
-        'atts[auth_message]': 'Sorry, You Are Not Allowed to Access This Page',
-        'atts[include_private_listing]': '0',
-        'atts[map_attribute_loadCallback]': 'ap_realty.searchResultsMapCallback',
-        'atts[load_more_automatic]': 'true',
-        # 'atts[sort]': 'sold_date_desc',
-        'per_page': '18',
-        'load_more': 'true',
-        'selectorMap': '#map_canvas',
-        'selector': '#ap-listing-search-results',
-        'current_page': '',
-        # 'sort': 'sold_date_desc',
-        'action': 'property_search_results',
-    }
+    url = "https://www.coastlinerealty.com.au/property-listing/"
+    prefix = "https://www.coastlinerealty.com.au"
+    headers = {
+    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+    'accept-language': 'en-US,en;q=0.9',
+    'cookie': 'cf_clearance=M8oaoTu.auqRplV2xPLKHu1URWdRbxJBH.ye4GHOggM-1738498672-1.2.1.1-COCKceO7vwnJ2YHddhupHKNqAjWNpwjnbDMOS0NSFV90dSREW5OjAPl38_m4wd3KzvBz6gS4aDDIGEYRagJBmvocX84sL79qEiFE9B31xsecaeOx9avheqvhIlBNmnj8hDv_yTImgnwk4PtmWOOK2z7po.O5sIdApDtA.jP_znbrB4iNSPvXtH60pES5m_b4amYw47kL1Ig3IfW2bIodwC8d8sBs4.8tGX_vRGydsfJDW3wTsJsPPryQRazjtQCTdx_wuXHff2NIpWj4CG.SH8b7En4pDNUvpATFvFBaiHf4D6LRQQiVCrP8T8Q.mkhP9sixqCfud2xPt4BaMEAGbA; epl_wp_session=0fc0d46fe0af3077ed465be6af1cf8bd%7C%7C1738577883%7C%7C1738576083; _gid=GA1.3.983767961.1738498734; _gat_gtag_UA_202632531_1=1; _ga_9BB3HX86R0=GS1.1.1738498734.2.0.1738498734.0.0.0; _ga=GA1.1.956742841.1737715495; _ga_S32Y1HLP8C=GS1.1.1738498702.2.1.1738498767.0.0.0',
+    'priority': 'u=0, i',
+    'referer': 'https://www.coastlinerealty.com.au/sell/',
+    'sec-ch-ua': '"Not A(Brand";v="8", "Chromium";v="132", "Google Chrome";v="132"',
+    'sec-ch-ua-arch': '"x86"',
+    'sec-ch-ua-bitness': '"64"',
+    'sec-ch-ua-full-version': '"132.0.6834.160"',
+    'sec-ch-ua-full-version-list': '"Not A(Brand";v="8.0.0.0", "Chromium";v="132.0.6834.160", "Google Chrome";v="132.0.6834.160"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-model': '""',
+    'sec-ch-ua-platform': '"Windows"',
+    'sec-ch-ua-platform-version': '"15.0.0"',
+    'sec-fetch-dest': 'document',
+    'sec-fetch-mode': 'navigate',
+    'sec-fetch-site': 'same-origin',
+    'sec-fetch-user': '?1',
+    'upgrade-insecure-requests': '1',
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36',
+}
 
     count = 1
     db = 'Coastline'
     collection = 'Coastline_Sale'
-    bucket_prefix = f'D_{collection}'
+    # bucket_prefix = f'P_{collection}'
+    bucket_prefix = f'Images9'
 
+    local_file_path = '/img'
+
+    def __init__(self, *args, **kwargs):
+        super(Coastline_Sale, self).__init__(*args, **kwargs)
+        self.links = []
+        self.database_sale_matching_url = self.read_data_base()
+
+
+    '''    SCRPAY SCRIPT START'S FROM HERE     '''
     def start_requests(self):
-        page_no = 1
-        payload = deepcopy(self.data)
-        payload['current_page'] = str(page_no)
-        yield scrapy.FormRequest(url=self.url, formdata=payload, method='POST', callback=self.parse, headers=self.headers,
-                                 meta={'page_no':page_no})
+        yield scrapy.Request(url=self.url, headers=self.headers, callback=self.parse)
 
     def parse(self, response):
-        data = json.loads(response.text)
-        for property in data['data']['props']:
-            property_url = property.get('url')
-            print(self.count, property_url)
+        '''    FARHAN'S LOGIC    '''
+        all_links = response.css(".property-address a ::attr(href)").getall()
+        links = []
+        for each_url in all_links:
+            links.append(each_url)
+            self.links.append(each_url)
+
+        for each_db_detail_page_url in self.database_sale_matching_url:
+            if each_db_detail_page_url in links:
+                new_data = {
+                    "Field102": "ACTIVE",
+                    "Field104": each_db_detail_page_url,
+                    "Field3": datetime.now().strftime("%d %b, %Y")
+                }
+                self.update_database(each_db_detail_page_url, new_data, 'true')
+                index_to_remove = links.index(each_db_detail_page_url)
+                links.pop(index_to_remove)
+
+            elif each_db_detail_page_url not in self.links:
+                new_data = {
+                    "Field102": "REMOVED",
+                    "Field104": each_db_detail_page_url,
+                    "Field3": datetime.now().strftime("%d %b, %Y")
+                }
+                self.update_database(each_db_detail_page_url, new_data, 'false')
+
+
+        for property_url in all_links:
+            print(self.count,' # Property URL :', property_url)
             self.count += 1
-            mini_data = dict()
-            mini_data['address'] = property.get('address')
-            mini_data['bed'] = property.get('bedrooms')
-            mini_data['bath'] = property.get('bathrooms')
-            mini_data['car'] = (int(property.get('garage') if property.get('garage') else '0')
-                                + int(property.get('carport') if property.get('carport') else '0')
-                                + int(property.get('off_street_park') if property.get('off_street_park') else '0'))
-            mini_data['sold_price'] = property.get('sold_price').replace('$','')
-            mini_data['description'] = property.get('description')
-            mini_data['property_type'] = property.get('property_type')
-            mini_data['land_area'] = property.get('land_area')
-            yield scrapy.Request(url=property_url, headers=self.headers, callback=self.Detail_parse, meta={'mini_data':mini_data})
+            yield response.follow(property_url, headers=self.headers, callback=self.detail_parse)
 
-        '''       Pagination     '''
-        page_no = response.meta['page_no']
-        total_pages = data['data']['total_pages']
-        if page_no < total_pages:
-            page_no += 1
-            payload = deepcopy(self.data)
-            payload['current_page'] = str(page_no)
-            yield scrapy.FormRequest(url=self.url, formdata=payload, method='POST', callback=self.parse, headers=self.headers,
-                                     meta={'page_no': page_no})
+        next_page = response.css(".nextpostslink ::attr(href)").get('').strip()
+        print("Next Page is :", next_page)
+        if next_page:
+            yield response.follow(next_page, headers=self.headers, callback=self.parse)
 
-    def Detail_parse(self, response):
-        DB_already_exists = self.read_data_base(response.url)
-        if not DB_already_exists:
-            mini_data = response.meta['mini_data']
+
+    def detail_parse(self, response):
+        detail_page_url = response.url
+        database_sale_matching_url = self.read_data_base()
+        if detail_page_url not in database_sale_matching_url:
             item = dict()
-            item['Field2'] = '1613'
+            item['Field1'] = ''
+            item['Field2'] = int(2902)
             item['Field3'] = datetime.now().date().strftime('%Y-%m-%d')  # date_data_scanned
-            item['Field4'] = 'Green Street Property'
+            item['Field4'] = 'Pace'
 
-            item['Field5'] = mini_data.get('address')
-            item['Field6'] = mini_data.get('bed')
-            item['Field7'] = mini_data.get('bath')
-            item['Field8'] = mini_data.get('car')
-            # item['Field9'] = mini_data.get('sold_price').replace('$','')
-            item['Field12'] = mini_data.get('description').replace('\n','').replace('\t','')
+            property_street = response.css('.item-street ::text').get('').strip()  # property_street
+            property_suburb = ' '.join(e.strip() for e in response.css('.entry-title-sub ::text').getall() if e.strip())  # property_suburb
+            property_address = f"{property_street} {property_suburb}"
+            item['Field5'] = property_address  # full_adddress
+
+            item['Field6'] = response.xpath("//*[contains(@class,'icon bed')]/span[1]/text()").get('').strip()
+            item['Field7'] = response.xpath("//*[contains(@class,'icon bath')]/span[1]/text()").get('').strip()
+            item['Field8'] = response.xpath("//*[contains(@class,'icon parking')]/span[1]/text()").get('').strip()
+
+            price = response.css('.page-price ::text').get('').strip().replace('Sold','').replace('$','').replace(' ','').replace(',','')
+            if price:
+                item['Field9'] = price.replace('Contact','').replace('Agent','')
+
+            description_head = ' '.join(element.strip().replace('\t', ' ').replace('\r', ' ').replace('\n', ' ') for element in response.css('.xxxxxxxxxx ::text').getall())  # description
+            detailed_desc = ' '.join(element.strip().replace('\t', ' ').replace('\r', ' ').replace('\n', ' ') for element in response.css(".tab-wrapper ::text").getall())  # description
+            if description_head or detailed_desc:
+                item['Field12'] = f"{description_head} {detailed_desc}"  # description
 
             '''         Uploading Images on Wasabi S3 Bucket            '''
-            Agent_Imagess = response.xpath("//*[contains(@class,'embed-responsive embed-responsive-3by2')]/picture/source/img/@src").getall()
-            new_img_urls = []
-            for url in Agent_Imagess:
-                new_img_urls.append(url)
-            Images = ', '.join(new_img_urls)
-            new_name = self.db.replace(' ', '').replace('/', '_')
-            id = (response.url).split('/')[-1]
-            # item['Field13'] = new_img_urls   # listing_images
-            # print(Images,new_name,id)
-            images = self.uploaded(Images, new_name, id)  ## ','saperated Images(string), Property_address, URL_id
-            item['Field13'] = ", ".join(images)
+            prop_images = response.xpath("//*[contains(@class,'epl_slider_popup_image')]/@href").getall()
+            images = []
+            for img in prop_images:
+                img = img.replace('background-image:url(','').replace(");","")
+                images.append(f'{img}' if img else "")
+            images_string = ', '.join(images)
+            # item['Field13'] = images_string
+            # print('Property images are :', images_string)
+            random_number = random.randint(1, 10000000000)
+            item['Field13'] = ", ".join(self.uploaded(images_string, random_number))
 
             item['Field14'] = response.url  # external_link
             '''          AGENTS          '''
-            if response.css(".listing-agent"):
-                agent1 = response.css(".listing-agent")[0]
-                agent1_name = agent1.css('.mb-0 ::text').get('').strip()
-                if agent1:
+            if response.css(".epl-author-box-container"):
+                agent1 = response.css(".epl-author-box-container")[0]
+                agent1_name = agent1.css('.author-title a ::text').get('').strip()
+                if agent1_name:
                     first_name1, last_name1 = agent1_name.split(maxsplit=1)
                     item['Field15'] = first_name1.strip()  # agent_first_name_1
                     item['Field16'] = last_name1.strip()  # agent_surname_name_1
                     item['Field17'] = agent1_name.strip()  # agent_full_name_1
-                    item['Field19'] = agent1.xpath(".//*[contains(@class,'email mb-0')]/a[contains(@href,'mailto:')]/text()").get('').strip().replace('tel:','')  # description
-                    agent1_phone = agent1.xpath(".//*[contains(@class,'mobile mb-0')]/a[contains(@href,'tel:')]/text()").get('').strip().replace('tel:','')  # description
-                    item['Field20'] = agent1_phone.strip()  # description
-                    agent1_mobile = agent1.xpath(".//*[contains(@class,'phone mb-0')]/a[contains(@href,'tel:')]/text()").get('').strip().replace('tel:','')  # description
-                    item['Field21'] = agent1_mobile.strip()  # description
+                    item['Field18'] = agent1.css('.position ::text').get('').strip()
+                    item['Field19'] =  agent1.xpath(".//a[contains(@href,'mailto:')]/@href").get('').strip().replace('mailto:','')
+                    item['Field20'] = agent1.css(".mobile ::text").get('').strip().replace('tel:','')
+                    item['Field21'] = agent1.css(".office-phone ::text").get('').strip().replace('tel:','')
                     '''         Uploading Images on Wasabi S3 Bucket            '''
-                    Agent_Images = agent1.css(".img-default-used-size-large ::attr(src)").get('').strip()
-                    new_name = agent1_name.replace(' ', '')
-                    id = agent1_phone.strip().replace(' ', '')
-                    # item['Field22'] = Agent_Images   # listing_images
-                    # print('Agent1 :',Agent_Images,',', new_name,',', id)
-                    images = self.uploaded(Agent_Images, new_name, id)  ## ','saperated Images(string), agent_name, agent_id
-                    item['Field22'] = ", ".join(images)
+                    agent_image = agent1.css(".avatar ::attr(src)").get('').strip().replace('background-image:url(','').replace(')','')
+                    images_string = f'{agent_image}' if agent_image else ""
+                    # item['Field22'] = images_string
+                    # print('Agent1 image is :',images_string)
+                    random_number = random.randint(1, 10000000000)
+                    item['Field22'] = ",".join(self.uploaded(images_string, random_number))
 
-                if len(response.css(".listing-agent").getall()) > 1:
-                    agent2 = response.css(".listing-agent")[1]
-                    agent2_name = agent2.css('.mb-0 ::text').get('').strip()
-                    if agent2:
-                        item['Field23'] = agent2_name.strip()
-                        item['Field25'] = agent1.xpath(".//*[contains(@class,'email mb-0')]/a[contains(@href,'mailto:')]/text()").get('').strip().replace('mailto:', '')  # description
-                        agent2_phone = agent2.xpath(".//*[contains(@class,'mobile mb-0')]/a[contains(@href,'tel:')]/text()").get('').strip().replace('tel:', '')  # description
-                        item['Field26'] = agent2_phone.strip()  # description
-                        agent2_mobile = agent2.xpath(".//*[contains(@class,'phone mb-0')]/a[contains(@href,'tel:')]/text()").get('').strip().replace('tel:', '')  # description
-                        item['Field26A'] = agent2_mobile.strip()  # description
-                        '''         Uploading Images on Wasabi S3 Bucket            '''
-                        Agent_Images = agent2.css(".img-default-used-size-large ::attr(src)").get('').strip()
-                        new_name = agent2_name.replace(' ', '')
-                        id = agent2_phone.strip().replace(' ', '')
-                        # item['Field27'] = Agent_Images
-                        # print('Agent2 :',Agent_Images,',', new_name,',', id)
-                        images = self.uploaded(Agent_Images, new_name, id)  ## ','saperated Images(string), agent_name, agent_id
-                        item['Field27'] = ", ".join(images)
+            if len(response.css(".epl-author-box-container").getall()) > 1:
+                agent2 = response.css(".epl-author-box-container")[1]
+                agent2_name = agent2.css('.author-title a ::text').get('').strip()
+                if agent2:
+                    item['Field23'] = agent2_name.strip()
+                    item['Field24'] = agent2.css('.position ::text').get('').strip()
+                    item['Field25'] = agent2.xpath(".//a[contains(@href,'mailto:')]/@href").get('').strip().replace('mailto:','')
+                    item['Field26'] = agent2.css(".mobile ::text").get('').strip().replace('tel:','')
+                    item['Field26A'] = agent2.css(".office-phone ::text").get('').strip().replace('tel:','')
+                    '''         Uploading Images on Wasabi S3 Bucket            '''
+                    agent_image = agent2.css(".avatar ::attr(src)").get('').strip().replace('background-image:url(','').replace(')','')
+                    images_string = f'{agent_image}' if agent_image else ""
+                    # item['Field27'] = images_string
+                    # print('Agent2 image is :',images_string)
+                    random_number = random.randint(1, 10000000000)
+                    item['Field27'] = ",".join(self.uploaded(images_string, random_number))
 
-                if len(response.css(".listing-agent").getall()) > 2:
-                    agent3 = response.css(".listing-agent")[2]
-                    agent3_name = agent3.css('.mb-0 ::text').get('').strip()
-                    if agent3:
-                        item['Field28'] = agent3_name.strip()
-                        item['Field30'] = agent1.xpath(".//*[contains(@class,'email mb-0')]/a[contains(@href,'mailto:')]/text()").get('').strip().replace('mailto:', '')  # description
-                        agent3_phone = agent3.xpath(".//*[contains(@class,'mobile mb-0')]/a[contains(@href,'tel:')]/text()").get('').strip().replace('tel:', '')  # description
-                        item['Field31'] = agent3_phone.strip()  # description
-                        agent3_mobile = agent3.xpath(".//*[contains(@class,'phone mb-0')]/a[contains(@href,'tel:')]/text()").get('').strip().replace('tel:', '')  # description
-                        item['Field31A'] = agent3_mobile.strip()  # description
-                        '''         Uploading Images on Wasabi S3 Bucket            '''
-                        Agent_Images = agent3.css(".img-default-used-size-large ::attr(src)").get('').strip()
-                        new_name = agent3_name.replace(' ', '')
-                        id = agent3_phone.strip().replace(' ', '')
-                        # item['Field32'] = Agent_Images
-                        # print('Agent3 :',Agent_Images,',', new_name,',', id)
-                        images = self.uploaded(Agent_Images, new_name, id)  ## ','saperated Images(string), agent_name, agent_id
-                        item['Field32'] = ", ".join(images)
+            if len(response.css(".epl-author-box-container").getall()) > 2:
+                agent3 = response.css(".epl-author-box-container")[2]
+                agent3_name = agent3.css('.author-title a ::text').get('').strip()
+                if agent3:
+                    item['Field28'] = agent3_name.strip()
+                    item['Field29'] = agent3.css('.position ::text').get('').strip()
+                    item['Field30'] = agent3.xpath(".//a[contains(@href,'mailto:')]/@href").get('').strip().replace('mailto:','')
+                    item['Field31'] = agent3.css(".mobile ::text").get('').strip().replace('tel:','')
+                    item['Field31A'] = agent3.css(".office-phone ::text").get('').strip().replace('tel:','')
+                    '''         Uploading Images on Wasabi S3 Bucket            '''
+                    agent_image = agent3.css(".avatar ::attr(src)").get('').strip().replace('background-image:url(','').replace(')','')
+                    images_string = f'{agent_image}' if agent_image else ""
+                    # item['Field32'] = images_string
+                    # print('Agent3 image is :',images_string)
+                    random_number = random.randint(1, 10000000000)
+                    item['Field32'] = ", ".join(self.uploaded(images_string, random_number))
 
-            # item['Field33'] = mini_data.get('prop_id')
-            item['Field35'] = mini_data.get('property_type')
-            item['Field36'] = mini_data.get('land_area')
 
-            # feature_count = 58
-            # for feature in response.css(".col-sm-4"):
-            #     if 'Air Conditioning' in feature.css('::text').get('').strip():
-            #         item['Field52'] = feature.css('::text').get('').strip()
-            #     else:
-            #         item[f'Field{feature_count}'] = feature.css('::text').get('').strip()
-            #         feature_count += 1
+            # item['Field33'] = re.search(r'/(\d+)/', response.url).group(1)
+            # id_from_url = response.url.rstrip('/').split('/')[-1]
+            item['Field35'] = response.xpath('//*[contains(@class,"property-category")]/text()').get('').strip()
 
+            land_area = response.xpath('//*[contains(@class,"land-size")]/text()').get('').strip().replace('Land','').replace('is','').replace('m²','')
+            if land_area:
+                if 'Acres' in land_area:
+                    pass
+                else:
+                    item['Field36'] = land_area.replace('m²','').replace(' ','')   # land_area
+            floor_area = response.xpath('//*[contains(@class,"floor-size")]/text()').get('').strip().replace('Land','').replace('is','').replace('m²','')
+            if floor_area:
+                if 'Acres' in floor_area:
+                    pass
+                else:
+                    item['Field37'] = floor_area.replace('m²','').replace(' ','')   # land_area
+
+            feature_count = 58
+            for feature in response.css(".epl-property-features li")[3:]:   ##  first 4 features are ID, bed, bath etc.
+                if 'condition' in feature.css('::text').get('').strip().lower():
+                    item['Field52'] = feature.css('::text').get('').strip()
+                else:
+                    item[f'Field{feature_count}'] = feature.css('::text').get('').strip()
+                    feature_count += 1
+
+            ####        ACTIVE / REMOVED Logic implemented in "Field102"
+            item['Field102'] = 'ACTIVE'
+            item['Field104'] = response.url
             print(item)
             self.insert_database(item)
         else:
-            print('Data already exists')
+            print(f'Skipping Record {detail_page_url}, since it already exists in the Data Base  !!!!! ')
 
-    def download_image(self, img_url, file_dir, name):
-        print('Download image details are : ',img_url, file_dir, name)
+
+    def read_data_base(self):
+    # def read_data_base(self, profileUrl):
+        connection_string = 'mongodb://localhost:27017'
+        conn = pymongo.MongoClient(connection_string)
+        db = conn[self.db]
+        collection = db[self.collection]
+
+        sale_urls_list_of_DB = []
+        all_matching_data = collection.find()
+        for each_row in all_matching_data:
+            sale = each_row.get('Field104')
+            sale_urls_list_of_DB.append(sale)
+        return sale_urls_list_of_DB
+
+
+    def insert_database(self, new_data):
+        connection_string = 'mongodb://localhost:27017'
+        conn = pymongo.MongoClient(connection_string)
+        db = conn[self.db]
+        collection = db[self.collection]
+        collection.insert_one(new_data)
+        print("Data inserted successfully!")
+
+    def update_database(self, profileUrl, new_data, area):
+        connection_string = 'mongodb://localhost:27017'
+        conn = pymongo.MongoClient(connection_string)
+        db = conn[self.db]
+        collection = db[self.collection]
+
+        search_query = {"Field104": profileUrl}
+
+        update_query = {
+            "$set": {
+                "Field3": new_data["Field3"],
+                "Field102": new_data["Field102"],
+                "Field104": new_data["Field104"]
+            }
+        }
+        collection.update_one(search_query, update_query, upsert=True)
+        print(f"Data updated successfully! + {area}")
+
+
+    '''    HANDLING IMAGES - WASABI     '''
+    def download_image(self, img_url, file_path, name):
         try:
             response = requests.request(method='GET', url=img_url)
             if response.status_code == 200:
-                if not os.path.exists(file_dir):
-                    os.makedirs(file_dir)
-                with open(os.path.join(file_dir, name), 'wb') as file:
+                # sanitized_name = self.sanitize_filename(name)
+                with open(f'{file_path}/{name}', 'wb') as file:
                     file.write(response.content)
                 print(f"{name} Image downloaded successfully.")
-                return True
             else:
-                print(f"Failed to download the image {img_url}. Status code:", response.status_code)
-                return None
+                print("Failed to download the image. Status code:", response.status_code)
         except requests.exceptions.RequestException as e:
             print("An error occurred while downloading:", e)
         except Exception as e:
@@ -243,9 +291,8 @@ class Coastline_Sale(scrapy.Spider):
         s3.create_bucket(Bucket=new_bucket_name)
         return new_bucket_name
 
-    def uploaded(self, list_of_img, names, id):
+    def uploaded(self, list_of_img, names):
         list_images = [url.strip() for url in list_of_img.split(',')]
-
         wasabi_access_key = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
         wasabi_secret_key = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
         s3 = boto3.client(
@@ -254,11 +301,12 @@ class Coastline_Sale(scrapy.Spider):
             aws_secret_access_key=wasabi_secret_key,
             endpoint_url="https://s3.ap-southeast-1.wasabisys.com",
         )
-        # bucket_prefix = 'D_sales_properties'
+        # bucket_prefix = 'BLS'
         bucket_prefix = self.bucket_prefix
         bucket_number = 1
         current_bucket_name = f'{bucket_prefix}_{bucket_number}'
 
+        # existing_buckets = [bucket['Name'] for bucket in s3.list_buckets()['Buckets']]
         existing_buckets = [bucket['Name'] for bucket in s3.list_buckets()['Buckets']]
         if current_bucket_name in existing_buckets:
             if current_bucket_name != self.create_new_bucket(bucket_prefix, bucket_number, s3):
@@ -266,7 +314,7 @@ class Coastline_Sale(scrapy.Spider):
                 return
 
         current_bucket_name = self.create_new_bucket(bucket_prefix, bucket_number, s3)
-        print(f"Created and using bucket: {current_bucket_name}")
+        print(f"using bucket: {current_bucket_name}")
         try:
             object_count = len(s3.list_objects(Bucket=current_bucket_name).get('Contents', []))
         except s3.exceptions.NoSuchBucket:
@@ -274,17 +322,26 @@ class Coastline_Sale(scrapy.Spider):
             object_count = 0
         wasabi_url = []
 
+        # create image folder automacity
+        current_directory = os.getcwd()
+        image_folder = 'images'
+        image_directory = os.path.join(current_directory, image_folder)
+        os.makedirs(image_directory, exist_ok=True)
+
         for index, img in enumerate(list_images, start=1):
-            image_url = img
+            try:
+                image_url = img
+                # local_file_path = 'C:/Users/Jahanzaib/Desktop/img/'
+                local_file_path = os.path.join(image_directory).replace('\\', '/')
 
-            local_file_path = '/img'
+                title_name = f'{names}_{index}.jpg'
 
-            title_name = f'{names}_{id}_{index}.jpg'
+                img_url = f'https://s3.ap-southeast-1.wasabisys.com/{current_bucket_name}/{title_name}'
+                if image_url:
+                    self.download_image(image_url, local_file_path, title_name)
+                    # download_image(image_url,a)
 
-            img_url = f'https://s3.ap-southeast-1.wasabisys.com/{current_bucket_name}/{title_name}'
-            check_img = self.download_image(image_url, local_file_path, title_name)
-            if check_img:
-                if object_count >= 100000000:
+                if object_count >= 10000000:
                     bucket_number += 1
                     current_bucket_name = self.create_new_bucket(bucket_prefix, bucket_number, s3)
                     object_count = 0
@@ -320,6 +377,8 @@ class Coastline_Sale(scrapy.Spider):
                     print(f"An error occurred: {e}")
                 object_count += 1
                 wasabi_url.append(img_url)
+            except Exception as e:
+                print(e)
         return wasabi_url
 
     def delete_local_image(self, file_path):
@@ -328,28 +387,4 @@ class Coastline_Sale(scrapy.Spider):
         except OSError as e:
             print(f"Error deleting local image: {e}")
 
-    def read_data_base(self, profileUrl):
-        url = profileUrl
-        connection_string = 'mongodb://localhost:27017'
-        conn = pymongo.MongoClient(connection_string)
-        db = conn[self.db]
-        collection = db[self.collection]
-        search_query = {"Field14": url}
 
-        sale_urls_list_of_DB = []
-        all_matching_data = collection.find_one(search_query)
-
-        if all_matching_data:
-            print(all_matching_data.get('Field5'))
-            return True
-        else:
-            return False
-
-    def insert_database(self, new_data):
-        connection_string = 'mongodb://localhost:27017'
-        conn = pymongo.MongoClient(connection_string)
-        db = conn[self.db]
-        collection = db[self.collection]
-
-        collection.insert_one(new_data)
-        print("Data inserted successfully!")
